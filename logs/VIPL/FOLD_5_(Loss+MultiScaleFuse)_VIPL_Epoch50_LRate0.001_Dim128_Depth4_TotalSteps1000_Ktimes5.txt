@@ -1,0 +1,77 @@
+model=d_rppg_VIPL, Train_bs=60, Test_bs=60learning_rate=0.001,k_times=5,total_steps=1000
+==============================
+
+Training! [Epoch: 1/50]
+Training Loss: 0.232 |Testing! [Epoch: 1/50]
+Testing Loss: 1.006 |HR_MAE : 4.671 |HR_RMSE : 6.989 |HR_MER: 6.072 |HR_r: 0.704 |HR_std: 8.267 |
+
+Training! [Epoch: 2/50]
+Training Loss: 0.221 |Testing! [Epoch: 2/50]
+Testing Loss: 1.000 |HR_MAE : 4.296 |HR_RMSE : 6.722 |HR_MER: 5.295 |HR_r: 0.726 |HR_std: 6.100 |
+
+Training! [Epoch: 3/50]
+Training Loss: 0.217 |Testing! [Epoch: 3/50]
+Testing Loss: 1.003 |HR_MAE : 4.689 |HR_RMSE : 6.917 |HR_MER: 6.019 |HR_r: 0.706 |HR_std: 7.652 |
+
+Training! [Epoch: 4/50]
+Training Loss: 0.213 |Testing! [Epoch: 4/50]
+Testing Loss: 1.001 |HR_MAE : 4.089 |HR_RMSE : 6.705 |HR_MER: 4.988 |HR_r: 0.730 |HR_std: 6.016 |
+
+Training! [Epoch: 5/50]
+Training Loss: 0.212 |Testing! [Epoch: 5/50]
+Testing Loss: 1.000 |HR_MAE : 4.373 |HR_RMSE : 7.156 |HR_MER: 5.285 |HR_r: 0.699 |HR_std: 6.138 |
+
+Training! [Epoch: 6/50]
+Training Loss: 0.209 |Testing! [Epoch: 6/50]
+Testing Loss: 1.004 |HR_MAE : 4.251 |HR_RMSE : 6.730 |HR_MER: 5.208 |HR_r: 0.730 |HR_std: 6.098 |
+
+Training! [Epoch: 7/50]
+Training Loss: 0.206 |Testing! [Epoch: 7/50]
+Testing Loss: 1.003 |HR_MAE : 3.973 |HR_RMSE : 6.531 |HR_MER: 4.826 |HR_r: 0.751 |HR_std: 5.704 |
+
+Training! [Epoch: 8/50]
+Training Loss: 0.204 |Testing! [Epoch: 8/50]
+Testing Loss: 0.999 |HR_MAE : 3.932 |HR_RMSE : 6.553 |HR_MER: 4.926 |HR_r: 0.727 |HR_std: 6.437 |
+
+Training! [Epoch: 9/50]
+Training Loss: 0.205 |Testing! [Epoch: 9/50]
+Testing Loss: 1.001 |HR_MAE : 4.035 |HR_RMSE : 7.016 |HR_MER: 4.870 |HR_r: 0.697 |HR_std: 6.246 |
+
+Training! [Epoch: 10/50]
+Training Loss: 0.204 |Testing! [Epoch: 10/50]
+Testing Loss: 1.003 |HR_MAE : 3.762 |HR_RMSE : 6.229 |HR_MER: 4.713 |HR_r: 0.759 |HR_std: 6.076 |
+
+Training! [Epoch: 11/50]
+Training Loss: 0.203 |Testing! [Epoch: 11/50]
+Testing Loss: 1.001 |HR_MAE : 4.012 |HR_RMSE : 6.537 |HR_MER: 5.096 |HR_r: 0.730 |HR_std: 6.859 |
+
+Training! [Epoch: 12/50]
+Training Loss: 0.200 |Testing! [Epoch: 12/50]
+Testing Loss: 1.000 |HR_MAE : 3.810 |HR_RMSE : 6.068 |HR_MER: 4.895 |HR_r: 0.777 |HR_std: 6.602 |
+
+Training! [Epoch: 13/50]
+Training Loss: 0.201 |Testing! [Epoch: 13/50]
+Testing Loss: 0.997 |HR_MAE : 3.766 |HR_RMSE : 6.317 |HR_MER: 4.679 |HR_r: 0.756 |HR_std: 5.934 |
+
+Training! [Epoch: 14/50]
+Training Loss: 0.198 |Testing! [Epoch: 14/50]
+Testing Loss: 1.002 |HR_MAE : 3.725 |HR_RMSE : 6.176 |HR_MER: 4.607 |HR_r: 0.777 |HR_std: 5.797 |
+
+Training! [Epoch: 15/50]
+Training Loss: 0.198 |Testing! [Epoch: 15/50]
+Testing Loss: 1.003 |HR_MAE : 4.000 |HR_RMSE : 6.442 |HR_MER: 4.976 |HR_r: 0.748 |HR_std: 6.111 |
+
+Training! [Epoch: 16/50]
+Training Loss: 0.198 |Testing! [Epoch: 16/50]
+Testing Loss: 1.000 |HR_MAE : 4.211 |HR_RMSE : 6.498 |HR_MER: 5.363 |HR_r: 0.739 |HR_std: 6.894 |
+
+Training! [Epoch: 17/50]
+Training Loss: 0.197 |Testing! [Epoch: 17/50]
+Testing Loss: 1.000 |HR_MAE : 3.828 |HR_RMSE : 6.133 |HR_MER: 4.771 |HR_r: 0.772 |HR_std: 5.923 |
+
+Training! [Epoch: 18/50]
+Training Loss: 0.195 |Testing! [Epoch: 18/50]
+Testing Loss: 1.003 |HR_MAE : 3.990 |HR_RMSE : 6.471 |HR_MER: 4.883 |HR_r: 0.754 |HR_std: 5.771 |
+
+Training! [Epoch: 19/50]
+Training Loss: 0.197 |
