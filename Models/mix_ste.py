@@ -1,319 +1,180 @@
-import math
 import torch
-from torch import nn
-from einops import rearrange, repeat
-from einops.layers.torch import Rearrange
-import torch.nn.functional as F
-from collections import namedtuple
-import matplotlib.pyplot as plt
-import random
-
+import torch.nn as nn
+# from model.module.trans import Transformer as Transformer_s
+# from model.module.trans_hypothesis import Transformer
 import numpy as np
-import math
-from scipy import signal
+from einops import rearrange
+from collections import OrderedDict
+from torch.nn import functional as F
+from torch.nn import init
+import scipy.sparse as sp
 
-import config
-from Models import trans_hypothesis
 
 
-class PreNorm(nn.Module):
-    def __init__(self, dim, fn):
+class stcModel(nn.Module):
+    def __init__(self, layers, d_hid, frames, n_joints, out_joints):
         super().__init__()
-        self.norm = nn.LayerNorm(dim)
-        self.fn = fn
-
-    def forward(self, x, *args):
-        if len(args) == 0:
-            return self.fn(self.norm(x))
-        else:
-            return self.fn(self.norm(x), self.norm(args[0]))
-
-
-class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout=0.):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(dim, hidden_dim),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_dim, dim),
-            nn.Dropout(dropout)
+        self.stcformer = STCFormer(layers, d_hid)
+        self.regress_head = nn.Sequential(
+            nn.LayerNorm(d_hid),
+            nn.Linear(d_hid, 1)
         )
 
     def forward(self, x):
-        return self.net(x)
-
-
-class SpatialTransformer(nn.Module):
-    def __init__(self, dim, heads=4, dim_head=4, dropout=0.):
-        super().__init__()
-        inner_dim = dim_head * heads
-        self.spatial_attention = Attention(dim, heads, dim_head, dropout)
-        self.dropout = nn.Dropout(dropout)
-
-        self.to_out = nn.Sequential(
-            nn.Linear(inner_dim, dim),
-            nn.Dropout(dropout)
-        )
-
-    def forward(self, x):
-        spatial_attention, v = self.spatial_attention(x)
-        spatial_attention = self.dropout(spatial_attention)
-        out = torch.matmul(spatial_attention, v)
-        out = rearrange(out, 'b h n d -> b n (h d)')
-
-        return self.to_out(out)
-
-
-class TemporalTransformer(nn.Module):
-    def __init__(self, dim, heads=4, dim_head=4, dropout=0.):
-        super().__init__()
-        inner_dim = dim_head * heads
-        self.temporal_attention = Attention(dim, heads, dim_head, dropout)
-        self.dropout = nn.Dropout(dropout)
-
-        self.to_out = nn.Sequential(
-            nn.Linear(inner_dim, dim),
-            nn.Dropout(dropout)
-        )
-
-    def forward(self, x):
-        temporal_attention, v = self.temporal_attention(x)
-        temporal_attention = self.dropout(temporal_attention)
-        out = torch.matmul(temporal_attention, v)
-        out = rearrange(out, 'b h t d -> b t (h d)')
-
-        return self.to_out(out)
-
-
-class Attention(nn.Module):
-    def __init__(self, dim, heads=8, dim_head=4, dropout=0.):
-        super().__init__()
-        inner_dim = dim_head * heads
-
-        self.heads = heads
-        self.scale = dim_head ** -0.5
-        self.attend = nn.Softmax(dim=-1)
-        self.dropout = nn.Dropout(dropout)
-        self.to_qkv = nn.Linear(dim, inner_dim * 3, bias=False)
-
-    def forward(self, x):
-        qkv = self.to_qkv(x).chunk(3, dim=-1)
-        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=self.heads), qkv)
-
-        dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
-
-        attn = self.attend(dots)
-        # attn = self.dropout(attn)
-
-        # out = torch.matmul(attn, v)
-        # out = rearrange(out, 'b h n d -> b n (h d)')
-        return attn, v
-
-#对时间维度进行固定mask
-# class Attention(nn.Module):
-#     def __init__(self, dim, heads=8, dim_head=4, dropout=0., mask_radius=5):
-#         super().__init__()
-#         inner_dim = dim_head * heads
-#         self.heads = heads
-#         self.scale = dim_head ** -0.5
-#         self.attend = nn.Softmax(dim=-1)
-#         self.dropout = nn.Dropout(dropout)
-#         self.to_qkv = nn.Linear(dim, inner_dim * 3, bias=False)
-#         self.mask_radius = mask_radius
-#
-#     def forward(self, x):
-#         b, n, _ = x.shape
-#         qkv = self.to_qkv(x).chunk(3, dim=-1)
-#         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=self.heads), qkv)
-#
-#         # 点积并进行缩放
-#         dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
-#
-#         # 创建固定的 mask
-#         mask = torch.zeros(n, n, device=x.device).bool()
-#         for i in range(n):
-#             start = max(0, i - self.mask_radius)
-#             end = min(n, i + self.mask_radius + 1)
-#             mask[i, start:end] = True  # 保留相邻的值
-#
-#         # 扩展 mask 维度以适应 (b, h, n, n) 的形状
-#         mask = mask.unsqueeze(0).unsqueeze(0).expand(b, self.heads, n, n)
-#
-#         # 使用 mask，将不可见的位置设为负无穷
-#         dots.masked_fill_(~mask, float('-inf'))
-#
-#         # 计算注意力权重
-#         attn = self.attend(dots)
-#         attn = self.dropout(attn)
-#
-#         return attn, v
-
-
-#对空间维度进行随机mask
-# class Attention(nn.Module):
-#     def __init__(self, dim, heads=8, dim_head=4, dropout=0., mask_prob=0.1):
-#         super().__init__()
-#         inner_dim = dim_head * heads
-#         self.heads = heads
-#         self.scale = dim_head ** -0.5
-#         self.attend = nn.Softmax(dim=-1)
-#         self.dropout = nn.Dropout(dropout)
-#         self.to_qkv = nn.Linear(dim, inner_dim * 3, bias=False)
-#         self.mask_prob = mask_prob  # 控制 mask 的概率
-#
-#     def forward(self, x):
-#         qkv = self.to_qkv(x).chunk(3, dim=-1)
-#         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h=self.heads), qkv)
-#
-#         dots = torch.matmul(q, k.transpose(-1, -2)) * self.scale
-#
-#         attn = self.attend(dots)
-#
-#         # 生成随机 mask
-#         mask = torch.bernoulli(torch.full(attn.shape, 1 - self.mask_prob, device=attn.device))
-#         attn = attn * mask  # 应用 mask
-#         attn = self.dropout(attn)  # 之后可以应用 dropout
-#
-#         return attn, v
-
-class TemporalAttention(nn.Module):
-    def __init__(self, input_size, hidden_size):
-        super(TemporalAttention, self).__init__()
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-
-        # 定义 Q、K、V 的全连接层
-        self.fc_q = nn.Linear(self.input_size, self.hidden_size)
-        self.fc_k = nn.Linear(self.input_size, self.hidden_size)
-        self.fc_v = nn.Linear(self.input_size, self.hidden_size)
-        self.to_out = nn.Sequential(
-            nn.Linear(hidden_size, input_size),
-            nn.Dropout(0.1)
-        )
-
-    def forward(self, x):
-        # 输入x的形状：(batch_size, width, time)
-
-        # 计算 Q、K、V
-        q = self.fc_q(x)
-        k = self.fc_k(x)
-        v = self.fc_v(x)
-
-        # 计算注意力权重
-        attention_weights = F.softmax(torch.matmul(q, k.transpose(-1, -2)) / torch.sqrt(torch.tensor(self.hidden_size)),
-                                      dim=-1)
-
-        # 加权求和
-        attended_output = self.to_out(torch.matmul(attention_weights, v))
-
-
-        return attended_output
-
-
-
-
-class SpatialTemporalInteraction(nn.Module):
-    def __init__(self, dim, num_clusters, depth, heads, dim_head, mlp_dim, dropout=0.):
-        super().__init__()
-        self.num_clusters = num_clusters
-        self.dropout = nn.Dropout(0.1)
-        self.layers = nn.ModuleList([])
-        for _ in range(depth):
-            self.layers.append(nn.ModuleList([
-                PreNorm(dim, SpatialTransformer(dim, heads=heads, dim_head=dim_head, dropout=dropout)),
-                PreNorm(dim, FeedForward(dim, mlp_dim, dropout=dropout)),
-                PreNorm(dim, TemporalTransformer(dim, heads=heads, dim_head=dim_head, dropout=dropout)),
-                PreNorm(dim, FeedForward(dim, mlp_dim, dropout=dropout))
-            ]))
-        self.pos_embedding = nn.Parameter(torch.randn(1, 300, dim))
-
-    def forward(self, x):
-        count = 0
-        for spatial_attn, ff1, temporal_att, ff2 in self.layers:
-            num_clusters = x.shape[-2]
-            x = spatial_attn(x) + x
-            x = ff1(x) + x
-            x = rearrange(x, '(B T) K D -> (B K) T D', T=300)
-            if count == 0:
-                x += self.pos_embedding[:, :300]
-                x = self.dropout(x)
-            x = temporal_att(x) + x
-            x = ff2(x) + x
-            x = rearrange(x, '(B K) T D -> (B T) K D', K=self.num_clusters)
-            count = count + 1
+        x = self.stcformer(x)
+        x = self.regress_head(x).squeeze(-1)
+        x = x.mean(-1)
 
         return x
 
 
-class PatchEmbedding(nn.Module):
-    def __init__(self, dim, num_patch, emb_dropout):
+class STCFormer(nn.Module):
+    def __init__(self, num_block, d_coor ):
+        super(STCFormer, self).__init__()
+
+        self.num_block = num_block
+        self.d_coor = d_coor
+        self.spatial_pos_embedding = nn.Parameter(torch.randn(1,1,63,d_coor))
+        self.temporal_pos_embedding = nn.Parameter(torch.randn(1,300,1,d_coor))
+
+        self.stc_block = []
+        for l in range(self.num_block):
+            self.stc_block.append(STC_BLOCK(self.d_coor))
+        self.stc_block = nn.ModuleList(self.stc_block)
+
+    def forward(self, input):
+        # blocks layers
+        input = input + self.spatial_pos_embedding + self.temporal_pos_embedding
+        for i in range(self.num_block):
+            input = self.stc_block[i](input)
+            print(input.shape)
+        # exit()
+        return input
+
+
+class STC_BLOCK(nn.Module):
+    def __init__(self, d_coor):
         super().__init__()
 
-        # patch_dim = channels
-        self.to_patch_embedding = nn.Sequential(
-            Rearrange('b d1 d2 c -> (b d1) d2 c'),
-            nn.LayerNorm(dim),
-            nn.Linear(dim, dim),
-            nn.LayerNorm(dim),
-        )
+        self.layer_norm = nn.LayerNorm(d_coor)
 
-        self.pos_embedding = nn.Parameter(torch.randn(1, num_patch, dim))
-        self.dropout = nn.Dropout(emb_dropout)
+        self.mlp = Mlp(d_coor, d_coor, d_coor)
 
-    def forward(self, stmap):
-        x = self.to_patch_embedding(stmap)
-        b, num_patch, _ = x.shape
+        self.stc_att = STC_ATTENTION( d_coor)
 
-        x += self.pos_embedding[:, :num_patch]
-        x = self.dropout(x)
+    def forward(self, input):
+        b, t, s, c = input.shape
+        x = self.stc_att(input)
+        x = x + self.mlp(self.layer_norm(x))
 
         return x
 
 
-class Embedding(nn.Module):
-    def __init__(self, dim, num_clusters, emb_dropout, channels):
+class STC_ATTENTION(nn.Module):
+    def __init__(self,d_coor, head=8):
         super().__init__()
+        # print(d_time, d_joint, d_coor,head)
+        self.qkv = nn.Linear(d_coor, d_coor * 3)
+        self.head = head
+        self.layer_norm = nn.LayerNorm(d_coor)
 
-        self.num_clusters = num_clusters
+        self.scale = (d_coor // 2) ** -0.5
+        self.proj = nn.Linear(d_coor, d_coor)
+        self.head = head
 
-        self.to_patch_embedding = nn.Sequential(
-            nn.LayerNorm(channels),
-            nn.Linear(channels, dim),  # dim = 64
-            nn.LayerNorm(dim),
-        )
-        self.pos_embedding = nn.Parameter(torch.randn(1, 1, dim))
-        self.dropout = nn.Dropout(emb_dropout)
+        # sep1
+        # print(d_coor)
+        self.emb = nn.Embedding(5, d_coor//head//2)
+        self.part = torch.tensor([0, 1, 1, 1, 2, 2, 2, 0, 0, 0, 0, 3, 3, 3, 4, 4, 4]).long().cuda()
 
-    def forward(self, stmap):
-        stmap = stmap.to(torch.float32)
-        x = self.to_patch_embedding(stmap)
-        x += self.pos_embedding[:, :self.num_clusters]
-        x = self.dropout(x)
+        # sep2
+        self.sep2_t = nn.Conv2d(d_coor // 2, d_coor // 2, kernel_size=3, stride=1, padding=1, groups=d_coor // 2)
+        self.sep2_s = nn.Conv2d(d_coor // 2, d_coor // 2, kernel_size=3, stride=1, padding=1, groups=d_coor // 2)
 
+
+    def forward(self, input):
+        b, t, s, c = input.shape
+
+        h = input
+        x = self.layer_norm(input)
+
+        qkv = self.qkv(x)  # b, t, s, c-> b, t, s, 3*c
+        qkv = qkv.reshape(b, t, s, c, 3).permute(4, 0, 1, 2, 3)  # 3,b,t,s,c
+
+        # space group and time group
+        qkv_s, qkv_t = qkv.chunk(2, 4)  # [3,b,t,s,c//2],  [3,b,t,s,c//2]
+
+        q_s, k_s, v_s = qkv_s[0], qkv_s[1], qkv_s[2]  # b,t,s,c//2
+        q_t, k_t, v_t = qkv_t[0], qkv_t[1], qkv_t[2]  # b,t,s,c//2
+
+        # reshape for mat
+        q_s = rearrange(q_s, 'b t s (h c) -> (b h t) s c', h=self.head)  # b,t,s,c//2-> b*h*t,s,c//2//h
+        k_s = rearrange(k_s, 'b t s (h c) -> (b h t) c s ', h=self.head)  # b,t,s,c//2-> b*h*t,c//2//h,s
+
+        q_t = rearrange(q_t, 'b  t s (h c) -> (b h s) t c', h=self.head)  # b,t,s,c//2 -> b*h*s,t,c//2//h
+        k_t = rearrange(k_t, 'b  t s (h c) -> (b h s) c t ', h=self.head)  # b,t,s,c//2->  b*h*s,c//2//h,t
+
+        att_s = (q_s @ k_s) * self.scale  # b*h*t,s,s
+        att_t = (q_t @ k_t) * self.scale  # b*h*s,t,t
+
+        att_s = att_s.softmax(-1)  # b*h*t,s,s
+        att_t = att_t.softmax(-1)  # b*h*s,t,t
+
+        v_s = rearrange(v_s, 'b  t s c -> b c t s ')
+        v_t = rearrange(v_t, 'b  t s c -> b c t s ')
+
+
+
+        # MSA
+        v_s = rearrange(v_s, 'b (h c) t s   -> (b h t) s c ', h=self.head)  # b*h*t,s,c//2//h
+        v_t = rearrange(v_t, 'b (h c) t s  -> (b h s) t c ', h=self.head)  # b*h*s,t,c//2//h
+
+        x_s = att_s @ v_s    # b*h*t,s,c//2//h
+        x_t = att_t @ v_t  # b*h,t,c//h                # b*h*s,t,c//2//h
+
+        x_s = rearrange(x_s, '(b h t) s c -> b h t s c ', h=self.head, t=t)  # b*h*t,s,c//h//2 -> b,h,t,s,c//h//2
+        x_t = rearrange(x_t, '(b h s) t c -> b h t s c ', h=self.head, s=s)  # b*h*s,t,c//h//2 -> b,h,t,s,c//h//2
+
+        x_t = x_t
+
+        x = torch.cat((x_s, x_t), -1)  # b,h,t,s,c//h
+        x = rearrange(x, 'b h t s c -> b  t s (h c) ')  # b,t,s,c
+
+        # projection and skip-connection
+        x = self.proj(x)
+        x = x + h
         return x
 
 
 
 
+class Mlp(nn.Module):
+    def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.1):
+        super().__init__()
+        out_features = out_features or in_features
+        hidden_features = hidden_features or in_features
+        self.fc1 = nn.Linear(in_features, hidden_features, bias=False)
+        self.act = act_layer()
+        self.fc2 = nn.Linear(hidden_features, out_features, bias=False)
+        self.drop = nn.Dropout(drop)
 
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.act(x)
+        x = self.drop(x)
+        x = self.fc2(x)
+        x = self.drop(x)
+        return x
 
 
 
 
 
 if __name__ == "__main__":
-    v = ViT(
-        image_height=63,
-        image_width=300,
-        num_classes=300,
-        num_clusters=6,
-        dim=16,
-        depth=10,
-        heads=4,
-        mlp_dim=16,
-        dropout=0.1,
-        emb_dropout=0.1
-    )
+    # inputs = torch.rand(64, 351, 34)  # [btz, channel, T, H, W]
+    # inputs = torch.rand(1, 64, 4, 112, 112) #[btz, channel, T, H, W]
+    net = stcModel(layers=6, d_hid=128, frames=300, n_joints=63, out_joints=1)
+    inputs = torch.rand([12,300, 63, 64])
+    output = net(inputs)
+    print(output.size())
 
-    img = torch.randn(2, 3, 63, 300)

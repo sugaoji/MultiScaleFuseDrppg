@@ -15,7 +15,7 @@ VIPL_Fold = 1
 #egine里面的
 pred_folder_path = '/home/sugaoji/data/val_predict_data'
 #单数据集训练用
-MST_MAP_PATH = '/home/sugaoji/data/VIPL_MST/'
+MST_MAP_PATH = '/home/sugaoji/data/UBFC_MST/'
 
 frame_num = 300
 

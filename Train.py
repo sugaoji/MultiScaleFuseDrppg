@@ -209,10 +209,10 @@ if __name__ == "__main__":
     os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6,7"
 
     BS = [16,]
-    Dim = [128,]
+    Dim = [256,]
     Depth = [config.MIXste_depth,]
     Heads = [4,]
-    Mlpdim = [128,]
+    Mlpdim = [256,]
     Num_clusters = [63,]
 
     for bs in BS:
