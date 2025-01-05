@@ -36,6 +36,9 @@ class STCFormer(nn.Module):
         self.d_coor = d_coor
         self.spatial_pos_embedding = nn.Parameter(torch.randn(1,1,63,d_coor))
         self.temporal_pos_embedding = nn.Parameter(torch.randn(1,300,1,d_coor))
+        self.to_150 = nn.Linear(75, 150)
+        self.to_300 = nn.Linear(150, 300)
+        self.freq_ff = FreqFeedForward(d_coor*2, d_coor)
 
         self.stc_block = []
         for l in range(self.num_block):
@@ -47,9 +50,17 @@ class STCFormer(nn.Module):
         input = input + self.spatial_pos_embedding + self.temporal_pos_embedding
         for i in range(self.num_block):
             input = self.stc_block[i](input)
-            print(input.shape)
+            input_300 = input
+            input_150 = torch.fft.ifft(torch.fft.fft(input, norm='ortho',dim=1)[:, :150, :, :].real, norm='ortho',dim=1).real
+            input_75 = torch.fft.ifft(torch.fft.fft(input, norm='ortho',dim=1)[:, :75, :, :].real, norm='ortho',dim=1).real
+
+            input_150 = self.to_150(input_75.permute(0, 2, 3, 1)).permute(0, 3, 1, 2) + input_150
+            input_150_to_300 = self.to_300(input_150.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+            input_300 = torch.cat([input_150_to_300, input_150], -1) 
+            input_300 = self.freq_ff(input_300)
+            # print(input.shape)
         # exit()
-        return input
+        return input_300
 
 
 class STC_BLOCK(nn.Module):
@@ -166,7 +177,26 @@ class Mlp(nn.Module):
         x = self.drop(x)
         return x
 
+class FreqFeedForward(nn.Module):
+    def __init__(self, dim, out_dim, dropout=0.):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(dim, dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(dim, out_dim),
+            nn.Dropout(dropout)
+        )
 
+    def forward(self, x):
+        x = rearrange(x,'b t k d -> b k d t')
+        x = torch.fft.fft(x, norm='ortho').real
+        x = rearrange(x, 'b k d t -> b t k d')
+        x = self.net(x)
+        x = rearrange(x, 'b t k d -> b k d t')
+        x = torch.fft.ifft(x, norm='ortho').real
+        x = rearrange(x, 'b k d t -> b t k d')
+        return x
 
 
 
