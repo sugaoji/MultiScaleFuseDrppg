@@ -86,9 +86,9 @@ def run_training(bs, dim, depth, heads, mlpdim, num_clusters):
 
     if (dataset_type == "VIPL"):
         print("load the pretrained_model from UBFC")
-        pretrained_model_ubfc = 'RMSE(0.408)_28_of_(MultiScaleFuseDrppg)_UBFC_Epoch50_LRate0.001_Dim128_Depth4_TotalSteps1000_Ktimes5.pt'
+        pretrained_model_ubfc = 'RMSE(0.408)_13_of_(MultiScaleFuseDrppg)_UBFC_Epoch50_LRate0.001_Dim256_Depth4_TotalSteps1000_Ktimes5.pt'
         print("The pretrained model name: ",pretrained_model_ubfc)
-        model.load_state_dict(torch.load(f"./Checkpoint/UBFC/best/{pretrained_model_ubfc}")['model_state_dict'], weights_only=True)
+        model.load_state_dict(torch.load(f"./Checkpoint/UBFC/best/{pretrained_model_ubfc}")['model_state_dict'])
 
     model.cuda()
 #     if torch.cuda.device_count()>1:

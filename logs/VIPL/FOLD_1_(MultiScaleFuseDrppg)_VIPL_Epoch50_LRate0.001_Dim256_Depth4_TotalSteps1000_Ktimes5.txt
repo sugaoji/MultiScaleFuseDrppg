@@ -1,0 +1,2 @@
+model=d_rppg_VIPL, Train_bs=60, Test_bs=60learning_rate=0.001,k_times=5,total_steps=1000
+==============================
