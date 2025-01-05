@@ -1,6 +1,0 @@
-model=d_rppg_UBFC, Train_bs=60, Test_bs=60learning_rate=0.001,k_times=5,total_steps=1000
-==============================
-
-Training! [Epoch: 1/50]
-Training Loss: 0.399 |Testing! [Epoch: 1/50]
-Testing Loss: 0.294 |HR_MAE : 0.417 |HR_RMSE : 0.645 |HR_MER: 0.407 |HR_r: 0.998 |HR_std: 0.520 |

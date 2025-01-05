@@ -56,7 +56,7 @@ class STCFormer(nn.Module):
 
             input_150 = self.to_150(input_75.permute(0, 2, 3, 1)).permute(0, 3, 1, 2) + input_150
             input_150_to_300 = self.to_300(input_150.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
-            input_300 = torch.cat([input_150_to_300, input_150], -1) 
+            input_300 = torch.cat([input_150_to_300, input_300], -1) 
             input_300 = self.freq_ff(input_300)
             # print(input.shape)
         # exit()
@@ -189,13 +189,13 @@ class FreqFeedForward(nn.Module):
         )
 
     def forward(self, x):
-        x = rearrange(x,'b t k d -> b k d t')
-        x = torch.fft.fft(x, norm='ortho').real
-        x = rearrange(x, 'b k d t -> b t k d')
+        # x = rearrange(x,'b t k d -> b k d t')
+        # x = torch.fft.fft(x, norm='ortho').real
+        # x = rearrange(x, 'b k d t -> b t k d')
         x = self.net(x)
-        x = rearrange(x, 'b t k d -> b k d t')
-        x = torch.fft.ifft(x, norm='ortho').real
-        x = rearrange(x, 'b k d t -> b t k d')
+        # x = rearrange(x, 'b t k d -> b k d t')
+        # x = torch.fft.ifft(x, norm='ortho').real
+        # x = rearrange(x, 'b k d t -> b t k d')
         return x
 
 
