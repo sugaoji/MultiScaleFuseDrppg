@@ -1,2 +1,34 @@
 model=d_rppg_VIPL, Train_bs=60, Test_bs=60learning_rate=0.001,k_times=5,total_steps=1000
 ==============================
+
+Training! [Epoch: 1/50]
+Training Loss: 0.307 |Testing! [Epoch: 1/50]
+Testing Loss: 1.011 |HR_MAE : 8.488 |HR_RMSE : 11.974 |HR_MER: 11.176 |HR_r: 0.142 |HR_std: 12.024 |
+
+Training! [Epoch: 2/50]
+Training Loss: 0.295 |Testing! [Epoch: 2/50]
+Testing Loss: 1.001 |HR_MAE : 8.714 |HR_RMSE : 12.131 |HR_MER: 11.549 |HR_r: 0.013 |HR_std: 12.600 |
+
+Training! [Epoch: 3/50]
+Training Loss: 0.289 |Testing! [Epoch: 3/50]
+Testing Loss: 1.008 |HR_MAE : 8.480 |HR_RMSE : 11.898 |HR_MER: 11.303 |HR_r: 0.235 |HR_std: 12.681 |
+
+Training! [Epoch: 4/50]
+Training Loss: 0.284 |Testing! [Epoch: 4/50]
+Testing Loss: 1.006 |HR_MAE : 8.484 |HR_RMSE : 12.023 |HR_MER: 11.213 |HR_r: 0.106 |HR_std: 12.323 |
+
+Training! [Epoch: 5/50]
+Training Loss: 0.279 |Testing! [Epoch: 5/50]
+Testing Loss: 1.005 |HR_MAE : 8.576 |HR_RMSE : 11.965 |HR_MER: 11.389 |HR_r: 0.172 |HR_std: 12.552 |
+
+Training! [Epoch: 6/50]
+Training Loss: 0.273 |Testing! [Epoch: 6/50]
+Testing Loss: 1.009 |HR_MAE : 8.714 |HR_RMSE : 12.100 |HR_MER: 11.635 |HR_r: 0.086 |HR_std: 12.997 |
+
+Training! [Epoch: 7/50]
+Training Loss: 0.271 |Testing! [Epoch: 7/50]
+Testing Loss: 1.000 |HR_MAE : 8.407 |HR_RMSE : 12.005 |HR_MER: 10.983 |HR_r: 0.122 |HR_std: 11.726 |
+
+Training! [Epoch: 8/50]
+Training Loss: 0.270 |Testing! [Epoch: 8/50]
+Testing Loss: 1.005 |HR_MAE : 8.501 |HR_RMSE : 11.989 |HR_MER: 11.240 |HR_r: 0.137 |HR_std: 12.294 |

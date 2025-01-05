@@ -17,25 +17,6 @@ ModelPrediction = namedtuple('ModelPrediction', ['pred_noise', 'pred_x_start'])
 def pair(t):
     return t if isinstance(t, tuple) else (t, t)
 
-def index_points(points, idx):
-    """Sample features following the index.
-    Returns:
-        new_points:, indexed points data, [B, S, C]
-
-    Args:
-        points: input points data, [B, N, C]
-        idx: sample index data, [B, S]
-    """
-    device = points.device
-    B = points.shape[0]
-    view_shape = list(idx.shape)
-    view_shape[1:] = [1] * (len(view_shape) - 1)
-    repeat_shape = list(idx.shape)
-    repeat_shape[0] = 1
-    batch_indices = torch.arange(B, dtype=torch.long).to(device).view(view_shape).repeat(repeat_shape)
-    new_points = points[batch_indices, idx, :]
-    return new_points
-
 def extract(a, t, x_shape):
     """extract the appropriate t index for a batch of indices"""
     batch_size = t.shape[0]
@@ -88,38 +69,8 @@ class PreNorm(nn.Module):
         else:
             return self.fn(self.norm(x), self.norm(args[0]))
 
-class FeedForward(nn.Module):
-    def __init__(self, dim, hidden_dim, dropout=0.):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(dim, hidden_dim),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden_dim, dim),
-            nn.Dropout(dropout)
-        )
 
-    def forward(self, x):
-        return self.net(x)
 
-class PatchEmbedding(nn.Module):
-    def __init__(self, dim, num_patch, emb_dropout):
-        super().__init__()
-        self.to_patch_embedding = nn.Sequential(
-            Rearrange('b d1 d2 c -> (b d1) d2 c'),
-            nn.LayerNorm(dim),
-            nn.Linear(dim, dim),
-            nn.LayerNorm(dim),
-        )
-        self.pos_embedding = nn.Parameter(torch.randn(1, num_patch, dim))
-        self.dropout = nn.Dropout(emb_dropout)
-
-    def forward(self, stmap):
-        x = self.to_patch_embedding(stmap)
-        b, num_patch, _ = x.shape
-        x += self.pos_embedding[:, :num_patch]
-        x = self.dropout(x)
-        return x
 
 class Embedding(nn.Module):
     def __init__(self, dim, num_clusters, emb_dropout, channels):

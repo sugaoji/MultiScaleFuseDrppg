@@ -36,9 +36,9 @@ class STCFormer(nn.Module):
         self.d_coor = d_coor
         self.spatial_pos_embedding = nn.Parameter(torch.randn(1,1,63,d_coor))
         self.temporal_pos_embedding = nn.Parameter(torch.randn(1,300,1,d_coor))
-        self.to_150 = nn.Linear(75, 150)
-        self.to_300 = nn.Linear(150, 300)
-        self.freq_ff = FreqFeedForward(d_coor*2, d_coor)
+        self.from_75_to_300 = nn.Linear(75, 300)
+        self.from_150_to_300 = nn.Linear(150, 300)
+        self.freq_ff = FreqFeedForward(d_coor*3, d_coor)
 
         self.stc_block = []
         for l in range(self.num_block):
@@ -54,9 +54,9 @@ class STCFormer(nn.Module):
             input_150 = torch.fft.ifft(torch.fft.fft(input, norm='ortho',dim=1)[:, :150, :, :].real, norm='ortho',dim=1).real
             input_75 = torch.fft.ifft(torch.fft.fft(input, norm='ortho',dim=1)[:, :75, :, :].real, norm='ortho',dim=1).real
 
-            input_150 = self.to_150(input_75.permute(0, 2, 3, 1)).permute(0, 3, 1, 2) + input_150
-            input_150_to_300 = self.to_300(input_150.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
-            input_300 = torch.cat([input_150_to_300, input_300], -1) 
+            input_75_to_300 = self.from_75_to_300(input_75.permute(0, 2, 3, 1)).permute(0, 3, 1, 2) 
+            input_150_to_300 = self.from_150_to_300(input_150.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+            input_300 = torch.cat([input_300, input_150_to_300, input_75_to_300], -1) 
             input_300 = self.freq_ff(input_300)
             # print(input.shape)
         # exit()
@@ -181,10 +181,10 @@ class FreqFeedForward(nn.Module):
     def __init__(self, dim, out_dim, dropout=0.):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(dim, dim),
+            nn.Linear(dim, out_dim),
             nn.GELU(),
             nn.Dropout(dropout),
-            nn.Linear(dim, out_dim),
+            nn.Linear(out_dim, out_dim),
             nn.Dropout(dropout)
         )
 
