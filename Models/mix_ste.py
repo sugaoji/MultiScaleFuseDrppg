@@ -52,10 +52,10 @@ class STCFormer(nn.Module):
             input = self.stc_block[i](input)
             input_300 = input
             input_150 = torch.fft.ifft(torch.fft.fft(input, norm='ortho',dim=1)[:, :150, :, :].real, norm='ortho',dim=1).real
-            input_75 = torch.fft.ifft(torch.fft.fft(input, norm='ortho',dim=1)[:, :75, :, :].real, norm='ortho',dim=1).real
-
-            input_75_to_300 = self.from_75_to_300(input_75.permute(0, 2, 3, 1)).permute(0, 3, 1, 2) 
-            input_150_to_300 = self.from_150_to_300(input_150.permute(0, 2, 3, 1)).permute(0, 3, 1, 2)
+            input_75 = torch.fft.ifft(torch.fft.fft(input, norm='ortho', dim=1)[:, :75, :, :].real, norm='ortho', dim=1).real
+            
+            input_75_to_300 = torch.nn.functional.interpolate(input_75.permute(0, 2, 3, 1), size=(300), mode='linear').permute(0, 3, 1, 2)
+            input_150_to_300 = torch.nn.functional.interpolate(input_150.permute(0, 2, 3, 1), size=(300), mode='linear').permute(0, 3, 1, 2)
             input_300 = torch.cat([input_300, input_150_to_300, input_75_to_300], -1) 
             input_300 = self.freq_ff(input_300)
             # print(input.shape)
