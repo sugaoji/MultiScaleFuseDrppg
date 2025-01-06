@@ -36,10 +36,17 @@ def train_fn(model, data_loader, optimizer, lossfunc_pearson, lossfunc_mse):
         bvp = data['bvp'].cuda()
         optimizer.zero_grad()
 
+        bvp_75 = torch.fft.ifft(torch.fft.fft(bvp, norm='ortho',dim=1)[:, :75], norm='ortho',dim=1).real
+        bvp_150 = torch.fft.ifft(torch.fft.fft(bvp, norm='ortho',dim=1)[:, :150], norm='ortho',dim=1).real 
         ecg = model(maps,bvp)
         ecg = (ecg-torch.mean(ecg)) /torch.std(ecg)
+
+        ecg_75 = torch.fft.ifft(torch.fft.fft(ecg, norm='ortho',dim=1)[:, :75], norm='ortho',dim=1).real
+        ecg_150 = torch.fft.ifft(torch.fft.fft(ecg, norm='ortho',dim=1)[:, :150], norm='ortho',dim=1).real
         loss_ecg = lossfunc_pearson(ecg, bvp)
-        loss_total = loss_ecg 
+        loss_ecg_75 = lossfunc_pearson(ecg_75, bvp_75)
+        loss_ecg_150 = lossfunc_pearson(ecg_150, bvp_150)
+        loss_total = loss_ecg + (loss_ecg_75 + loss_ecg_150) * 0.1
 
         loss_total.backward()
         optimizer.step()
@@ -67,14 +74,23 @@ def eval_fn(model_eval_temp, data_loader, lossfunc_pearson, lossfunc_mse):
             maps = data['st_maps'].cuda()
             gt_HR = data['gt_HR'].cuda()
             bvp = data['bvp'].cuda()
-
-
             path = data['path']
 
+            bvp_75 = torch.fft.ifft(torch.fft.fft(bvp, norm='ortho',dim=1)[:, :75], norm='ortho',dim=1).real
+            bvp_150 = torch.fft.ifft(torch.fft.fft(bvp, norm='ortho',dim=1)[:, :150], norm='ortho',dim=1).real 
+            
             ecg = model_eval_temp(maps,bvp)
-            ecg = (ecg - torch.mean(ecg)) / torch.std(ecg)
+            ecg = (ecg-torch.mean(ecg)) /torch.std(ecg)
+
+            ecg_75 = torch.fft.ifft(torch.fft.fft(ecg, norm='ortho',dim=1)[:, :75], norm='ortho',dim=1).real
+            ecg_150 = torch.fft.ifft(torch.fft.fft(ecg, norm='ortho',dim=1)[:, :150], norm='ortho',dim=1).real
+            
             loss_ecg = lossfunc_pearson(ecg, bvp)
-            loss_total = loss_ecg 
+            
+            loss_ecg_75 = lossfunc_pearson(ecg_75, bvp_75)
+            loss_ecg_150 = lossfunc_pearson(ecg_150, bvp_150)
+            loss_total = loss_ecg + (loss_ecg_75 + loss_ecg_150) * 0.1
+
 
             folder_path = config.pred_folder_path
             if not os.path.exists(folder_path):  # 判断是否存在文件夹如果不存在则创建为文件夹

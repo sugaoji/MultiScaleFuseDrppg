@@ -54,8 +54,14 @@ class STCFormer(nn.Module):
             input_150 = torch.fft.ifft(torch.fft.fft(input, norm='ortho',dim=1)[:, :150, :, :].real, norm='ortho',dim=1).real
             input_75 = torch.fft.ifft(torch.fft.fft(input, norm='ortho', dim=1)[:, :75, :, :].real, norm='ortho', dim=1).real
             
-            input_75_to_300 = torch.nn.functional.interpolate(input_75.permute(0, 2, 3, 1), size=(300), mode='linear').permute(0, 3, 1, 2)
-            input_150_to_300 = torch.nn.functional.interpolate(input_150.permute(0, 2, 3, 1), size=(300), mode='linear').permute(0, 3, 1, 2)
+            input_75_resize = rearrange(input_75, 'b t k d -> (b k) d t')
+            input_150_resize = rearrange(input_150, 'b t k d -> (b k) d t')
+
+            input_75_to_300 = torch.nn.functional.interpolate(input_75_resize, size=(300), mode='linear')
+            input_150_to_300 = torch.nn.functional.interpolate(input_150_resize, size=(300), mode='linear')
+
+            input_75_to_300 = rearrange(input_75_to_300, '(b k) d t -> b t k d', k=63)
+            input_150_to_300 = rearrange(input_150_to_300, '(b k) d t -> b t k d', k=63)
             input_300 = torch.cat([input_300, input_150_to_300, input_75_to_300], -1) 
             input_300 = self.freq_ff(input_300)
             # print(input.shape)
@@ -181,10 +187,10 @@ class FreqFeedForward(nn.Module):
     def __init__(self, dim, out_dim, dropout=0.):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(dim, out_dim),
+            nn.Linear(dim, dim),
             nn.GELU(),
             nn.Dropout(dropout),
-            nn.Linear(out_dim, out_dim),
+            nn.Linear(dim, out_dim),
             nn.Dropout(dropout)
         )
 
